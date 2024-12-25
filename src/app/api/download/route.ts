@@ -37,60 +37,90 @@ export async function POST(req: Request) {
       const fs = require("fs");
       const { execSync } = require("child_process");
 
-      // Copy binary to /tmp
-      fs.copyFileSync(path.join(process.cwd(), "public", "yt-dlp"), binaryPath);
-      // Make it executable
-      execSync(`chmod +x ${binaryPath}`);
+      try {
+        // Copy binary to /tmp
+        fs.copyFileSync(
+          path.join(process.cwd(), "public", "yt-dlp"),
+          binaryPath
+        );
+        // Make it executable
+        execSync(`chmod +x ${binaryPath}`);
+        // Test the binary
+        execSync(`${binaryPath} --version`);
+      } catch (error) {
+        console.error("Error setting up yt-dlp:", error);
+        return NextResponse.json(
+          { error: "Failed to initialize video downloader" },
+          { status: 500 }
+        );
+      }
     }
 
     console.log("Using binary path:", binaryPath);
 
-    const { stdout } = await execFileAsync(binaryPath, [
-      url,
-      "--dump-single-json",
-      "--no-warnings",
-      "--prefer-free-formats",
-      "--no-check-certificates",
-      "--format",
-      "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best",
-      "--add-header",
-      "referer:youtube.com",
-      "--add-header",
-      `user-agent:${process.env.USER_AGENT || "Mozilla/5.0"}`,
-    ]);
+    try {
+      const { stdout } = await execFileAsync(
+        binaryPath,
+        [
+          url,
+          "--dump-single-json",
+          "--no-warnings",
+          "--prefer-free-formats",
+          "--no-check-certificates",
+          "--format",
+          "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best",
+          "--add-header",
+          "referer:youtube.com",
+          "--add-header",
+          `user-agent:${process.env.USER_AGENT || "Mozilla/5.0"}`,
+        ],
+        {
+          timeout: 30000, // 30 seconds timeout
+          maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+        }
+      );
 
-    const videoInfo = JSON.parse(stdout) as YTDLInfo;
+      const videoInfo = JSON.parse(stdout) as YTDLInfo;
 
-    if (!videoInfo || !videoInfo.formats) {
-      throw new Error("Failed to fetch video information");
+      if (!videoInfo || !videoInfo.formats) {
+        throw new Error("Failed to fetch video information");
+      }
+
+      const { videoFormats, audioFormats } = processFormats(videoInfo.formats);
+
+      const response = {
+        title: videoInfo.title || "Untitled Video",
+        thumbnail:
+          videoInfo.thumbnail ||
+          `https://i.ytimg.com/vi/${videoInfo.id}/maxresdefault.jpg`,
+        duration: formatDuration(videoInfo.duration_string || "0:00"),
+        author: videoInfo.uploader || "Unknown Author",
+        views: parseInt(
+          videoInfo.view_count?.toString() || "0"
+        ).toLocaleString(),
+        description: videoInfo.description
+          ? videoInfo.description.slice(0, 200) + "..."
+          : "No description available",
+        formatGroups: {
+          bestVideo: videoFormats[0]?.formats[0],
+          bestAudio: audioFormats[0]?.formats[0],
+          videoFormats,
+          audioFormats,
+        },
+      };
+
+      return NextResponse.json(response);
+    } catch (error) {
+      console.error("Error executing yt-dlp:", error);
+      return NextResponse.json(
+        { error: "Failed to process video info" },
+        { status: 500 }
+      );
     }
-
-    const { videoFormats, audioFormats } = processFormats(videoInfo.formats);
-
-    const response = {
-      title: videoInfo.title || "Untitled Video",
-      thumbnail:
-        videoInfo.thumbnail ||
-        `https://i.ytimg.com/vi/${videoInfo.id}/maxresdefault.jpg`,
-      duration: formatDuration(videoInfo.duration_string || "0:00"),
-      author: videoInfo.uploader || "Unknown Author",
-      views: parseInt(videoInfo.view_count?.toString() || "0").toLocaleString(),
-      description: videoInfo.description
-        ? videoInfo.description.slice(0, 200) + "..."
-        : "No description available",
-      formatGroups: {
-        bestVideo: videoFormats[0]?.formats[0],
-        bestAudio: audioFormats[0]?.formats[0],
-        videoFormats,
-        audioFormats,
-      },
-    };
-
-    return NextResponse.json(response);
   } catch (error) {
-    console.error("Error fetching video info:", error);
+    console.error("Error in request handler:", error);
     return NextResponse.json(
-      { error: "Failed to fetch video info" },
+      { error: "Failed to handle request" },
       { status: 500 }
     );
   }
