@@ -8,7 +8,8 @@
     "installCommand": "npm install",
     "framework": "nextjs",
     "env": {
-        "YTDL_BIN_PATH": "./public/yt-dlp"
+        "YTDL_BIN_PATH": "/tmp/yt-dlp",
+        "USER_AGENT": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     },
     "outputDirectory": ".next",
     "public": true

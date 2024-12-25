@@ -30,7 +30,18 @@ export async function POST(req: Request) {
     const binaryPath =
       process.env.NODE_ENV === "development"
         ? "./yt-dlp.exe" // Use relative path for development
-        : path.join(process.cwd(), "public", "yt-dlp");
+        : "/tmp/yt-dlp"; // Use /tmp directory in production
+
+    // In production, copy the binary to /tmp and make it executable
+    if (process.env.NODE_ENV !== "development") {
+      const fs = require("fs");
+      const { execSync } = require("child_process");
+
+      // Copy binary to /tmp
+      fs.copyFileSync(path.join(process.cwd(), "public", "yt-dlp"), binaryPath);
+      // Make it executable
+      execSync(`chmod +x ${binaryPath}`);
+    }
 
     console.log("Using binary path:", binaryPath);
 
@@ -45,7 +56,7 @@ export async function POST(req: Request) {
       "--add-header",
       "referer:youtube.com",
       "--add-header",
-      "user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      `user-agent:${process.env.USER_AGENT || "Mozilla/5.0"}`,
     ]);
 
     const videoInfo = JSON.parse(stdout) as YTDLInfo;
