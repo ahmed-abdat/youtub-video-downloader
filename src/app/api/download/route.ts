@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import path from "path";
 import { execFile } from "child_process";
 import { promisify } from "util";
+import fs from "fs";
 import { formatDuration } from "@/utils/format";
 import { processFormats } from "@/services/youtube";
 
@@ -18,6 +19,31 @@ interface YTDLInfo {
   id: string;
 }
 
+async function setupBinary(sourcePath: string, targetPath: string) {
+  try {
+    // Read the binary file
+    const binaryContent = await fs.promises.readFile(sourcePath);
+
+    // Write to target location with correct typing
+    await fs.promises.writeFile(targetPath, binaryContent.toString("binary"), {
+      mode: 0o755,
+    });
+
+    // Verify the file exists and is executable
+    const stats = await fs.promises.stat(targetPath);
+    const isExecutable = !!(stats.mode & fs.constants.S_IXUSR);
+
+    if (!isExecutable) {
+      throw new Error("Binary is not executable");
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error setting up binary:", error);
+    return false;
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const { url } = await req.json();
@@ -32,23 +58,12 @@ export async function POST(req: Request) {
         ? "./yt-dlp.exe" // Use relative path for development
         : "/tmp/yt-dlp"; // Use /tmp directory in production
 
-    // In production, copy the binary to /tmp and make it executable
+    // In production, set up the binary
     if (process.env.NODE_ENV !== "development") {
-      const fs = require("fs");
-      const { execSync } = require("child_process");
+      const sourcePath = path.join(process.cwd(), "public", "yt-dlp");
+      const success = await setupBinary(sourcePath, binaryPath);
 
-      try {
-        // Copy binary to /tmp
-        fs.copyFileSync(
-          path.join(process.cwd(), "public", "yt-dlp"),
-          binaryPath
-        );
-        // Make it executable
-        execSync(`chmod +x ${binaryPath}`);
-        // Test the binary
-        execSync(`${binaryPath} --version`);
-      } catch (error) {
-        console.error("Error setting up yt-dlp:", error);
+      if (!success) {
         return NextResponse.json(
           { error: "Failed to initialize video downloader" },
           { status: 500 }
@@ -77,6 +92,10 @@ export async function POST(req: Request) {
         {
           timeout: 30000, // 30 seconds timeout
           maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+          env: {
+            ...process.env,
+            PATH: process.env.PATH || "/usr/local/bin:/usr/bin:/bin",
+          },
         }
       );
 
