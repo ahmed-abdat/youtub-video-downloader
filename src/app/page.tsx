@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -222,7 +223,7 @@ export default function HomePage() {
             <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 shadow-xl animate-fade-in">
               <div className="flex flex-col md:flex-row items-start gap-6 mb-8">
                 <div className="w-full md:w-1/3">
-                  <img
+                  <Image
                     src={videoInfo.thumbnail}
                     alt={videoInfo.title}
                     className="w-full rounded-xl shadow-lg hover:shadow-2xl transition-all duration-200"
