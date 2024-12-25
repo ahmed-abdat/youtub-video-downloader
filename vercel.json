@@ -8,6 +8,8 @@
     "installCommand": "npm install",
     "framework": "nextjs",
     "env": {
-        "YTDL_BIN_PATH": "/var/task/yt-dlp"
-    }
+        "YTDL_BIN_PATH": "./public/yt-dlp"
+    },
+    "outputDirectory": ".next",
+    "public": true
 }
