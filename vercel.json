@@ -4,7 +4,10 @@
             "maxDuration": 60
         }
     },
-    "buildCommand": "npm run build",
+    "buildCommand": "bash ./vercel-build.sh",
     "installCommand": "npm install",
-    "framework": "nextjs"
+    "framework": "nextjs",
+    "env": {
+        "YTDL_BIN_PATH": "/var/task/yt-dlp"
+    }
 }
