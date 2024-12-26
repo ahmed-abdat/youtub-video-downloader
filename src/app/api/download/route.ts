@@ -27,13 +27,15 @@ async function setupBinary(sourcePath: string, targetPath: string) {
     // Make it executable
     execSync(`chmod +x "${targetPath}"`);
 
-    // Add user's local bin to PATH
-    const userPath = `${process.env.HOME}/.local/bin`;
-    process.env.PATH = `${process.env.PATH}:${userPath}`;
+    // Add Python packages to PYTHONPATH
+    const pythonPath = `${process.env.HOME}/.local/lib/python3.9/site-packages`;
+    process.env.PYTHONPATH = process.env.PYTHONPATH
+      ? `${process.env.PYTHONPATH}:${pythonPath}`
+      : pythonPath;
 
     // Verify yt-dlp is available
     try {
-      execSync("yt-dlp --version");
+      execSync("python3 -m yt_dlp --version");
     } catch (error) {
       console.error("yt-dlp not available:", error);
       return false;
@@ -52,7 +54,8 @@ async function setupBinary(sourcePath: string, targetPath: string) {
       size: stats.size,
       mode: stats.mode.toString(8),
       isExecutable,
-      ytdlpVersion: execSync("yt-dlp --version").toString(),
+      pythonPath: process.env.PYTHONPATH,
+      ytdlpVersion: execSync("python3 -m yt_dlp --version").toString(),
     });
 
     return true;
@@ -92,8 +95,10 @@ export async function POST(req: Request) {
 
     try {
       const { stdout } = await execFileAsync(
-        binaryPath,
+        "python3",
         [
+          "-m",
+          "yt_dlp",
           url,
           "--dump-single-json",
           "--no-warnings",
@@ -111,7 +116,9 @@ export async function POST(req: Request) {
           maxBuffer: 10 * 1024 * 1024, // 10MB buffer
           env: {
             ...process.env,
-            PATH: process.env.PATH || "/usr/local/bin:/usr/bin:/bin",
+            PYTHONPATH:
+              process.env.PYTHONPATH ||
+              `${process.env.HOME}/.local/lib/python3.9/site-packages`,
           },
         }
       );
