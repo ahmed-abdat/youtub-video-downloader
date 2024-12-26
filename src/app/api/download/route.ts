@@ -27,11 +27,15 @@ async function setupBinary(sourcePath: string, targetPath: string) {
     // Make it executable
     execSync(`chmod +x "${targetPath}"`);
 
-    // Verify Python and yt-dlp are available
+    // Add user's local bin to PATH
+    const userPath = `${process.env.HOME}/.local/bin`;
+    process.env.PATH = `${process.env.PATH}:${userPath}`;
+
+    // Verify yt-dlp is available
     try {
-      execSync("python3 -m yt_dlp --version");
+      execSync("yt-dlp --version");
     } catch (error) {
-      console.error("Python or yt-dlp not available:", error);
+      console.error("yt-dlp not available:", error);
       return false;
     }
 
@@ -48,8 +52,7 @@ async function setupBinary(sourcePath: string, targetPath: string) {
       size: stats.size,
       mode: stats.mode.toString(8),
       isExecutable,
-      pythonVersion: execSync("python3 --version").toString(),
-      ytdlpVersion: execSync("python3 -m yt_dlp --version").toString(),
+      ytdlpVersion: execSync("yt-dlp --version").toString(),
     });
 
     return true;
