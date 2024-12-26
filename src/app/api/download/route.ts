@@ -72,12 +72,11 @@ export async function POST(req: Request) {
 
     // Set binary path based on environment
     const binaryPath =
-      process.env.NODE_ENV === "development"
-        ? "./yt-dlp.exe" // Use relative path for development
-        : "/tmp/yt-dlp"; // Use /tmp directory in production
+      process.env.YTDL_BIN_PATH ||
+      (process.env.NODE_ENV === "development" ? "./yt-dlp.exe" : "/tmp/yt-dlp");
 
     // In production, set up the binary
-    if (process.env.NODE_ENV !== "development") {
+    if (process.env.NODE_ENV === "production") {
       const sourcePath = path.join(process.cwd(), "public", "yt-dlp");
       const success = await setupBinary(sourcePath, binaryPath);
 
