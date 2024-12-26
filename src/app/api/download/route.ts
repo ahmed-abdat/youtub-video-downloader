@@ -27,6 +27,14 @@ async function setupBinary(sourcePath: string, targetPath: string) {
     // Make it executable
     execSync(`chmod +x "${targetPath}"`);
 
+    // Verify Python and yt-dlp are available
+    try {
+      execSync("python3 -m yt_dlp --version");
+    } catch (error) {
+      console.error("Python or yt-dlp not available:", error);
+      return false;
+    }
+
     // Verify the file exists and is executable
     const stats = await fs.promises.stat(targetPath);
     const isExecutable = !!(stats.mode & fs.constants.S_IXUSR);
@@ -40,6 +48,8 @@ async function setupBinary(sourcePath: string, targetPath: string) {
       size: stats.size,
       mode: stats.mode.toString(8),
       isExecutable,
+      pythonVersion: execSync("python3 --version").toString(),
+      ytdlpVersion: execSync("python3 -m yt_dlp --version").toString(),
     });
 
     return true;

@@ -3,28 +3,28 @@
 # Create necessary directories
 mkdir -p public
 
-# Download yt-dlp binary for Linux x64
-echo "Downloading yt-dlp..."
-curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux.amd64 -o public/yt-dlp
+# Install Python and pip
+echo "Installing Python and pip..."
+apt-get update && apt-get install -y python3 python3-pip
+
+# Install yt-dlp using pip
+echo "Installing yt-dlp..."
+pip3 install yt-dlp
+
+# Create a wrapper script
+echo "Creating wrapper script..."
+cat > public/yt-dlp << 'EOF'
+#!/bin/bash
+python3 -m yt_dlp "$@"
+EOF
 
 # Make it executable
-echo "Making yt-dlp executable..."
+echo "Making wrapper script executable..."
 chmod +x public/yt-dlp
 
-# Verify the binary
-echo "Verifying binary..."
-file public/yt-dlp
-ls -la public/yt-dlp
-
-# Print binary information
-echo "Binary details:"
-file public/yt-dlp
-
-# Test the binary (optional, might fail during build)
-echo "Testing yt-dlp binary..."
-if ! ./public/yt-dlp --version; then
-    echo "Binary test failed, but continuing build..."
-fi
+# Verify installation
+echo "Verifying installation..."
+python3 -m yt_dlp --version
 
 # Build the Next.js application
 echo "Building Next.js application..."
