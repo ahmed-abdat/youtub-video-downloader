@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import path from "path";
-import { execFile } from "child_process";
+import { execFile, execSync } from "child_process";
 import { promisify } from "util";
 import fs from "fs";
 import { formatDuration } from "@/utils/format";
@@ -21,13 +21,11 @@ interface YTDLInfo {
 
 async function setupBinary(sourcePath: string, targetPath: string) {
   try {
-    // Read the binary file
-    const binaryContent = await fs.promises.readFile(sourcePath);
+    // Copy file using cp command
+    execSync(`cp "${sourcePath}" "${targetPath}"`);
 
-    // Write to target location with correct typing
-    await fs.promises.writeFile(targetPath, binaryContent.toString("binary"), {
-      mode: 0o755,
-    });
+    // Make it executable
+    execSync(`chmod +x "${targetPath}"`);
 
     // Verify the file exists and is executable
     const stats = await fs.promises.stat(targetPath);
@@ -36,6 +34,13 @@ async function setupBinary(sourcePath: string, targetPath: string) {
     if (!isExecutable) {
       throw new Error("Binary is not executable");
     }
+
+    // Log file information for debugging
+    console.log("Binary setup complete:", {
+      size: stats.size,
+      mode: stats.mode.toString(8),
+      isExecutable,
+    });
 
     return true;
   } catch (error) {
